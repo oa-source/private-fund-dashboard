@@ -254,6 +254,18 @@ def currency_symbol(currency):
     if currency == "AUD":
         return "AUD "
 
+    if currency == "JPY":
+        return "¥"
+
+    if currency == "KRW":
+        return "KRW "
+
+    if currency == "INR":
+        return "INR "
+
+    if currency == "SEK":
+        return "SEK "
+
     return ""
 
 
@@ -1148,10 +1160,13 @@ with tab2:
             errors="coerce",
         )
 
+        # Do NOT run fix_size_numeric here.
+        # Future fundraising mixes currencies like USD, EUR, GBP, JPY, KRW, INR, SEK.
+        # A KRW303bn fund should stay KRW303bn, not be treated as USD or divided down.
         future_df["target_size_millions"] = pd.to_numeric(
             future_df["target_size_millions"],
             errors="coerce",
-        ).apply(fix_size_numeric)
+        )
 
         future_df = future_df[
             future_df["fund_name"].astype(str).str.strip() != ""
@@ -1168,8 +1183,8 @@ with tab2:
                 st.metric("Future fund rows", f"{len(future_df):,}")
 
             with k2:
-                known_size = future_df["target_size_millions"].dropna().sum()
-                st.metric("Known target size", f"€{known_size:,.0f}m")
+                known_size_count = future_df["target_size_display"].astype(str).str.strip().ne("").sum()
+                st.metric("Rows with target size", f"{known_size_count:,}")
 
             with k3:
                 st.metric("Source PDFs", f"{future_df['source_file'].nunique():,}")
@@ -1195,7 +1210,6 @@ with tab2:
                 .groupby("chart_period", as_index=False)
                 .agg(
                     fund_count=("fund_name", "count"),
-                    target_size_millions=("target_size_millions", "sum"),
                 )
                 .sort_values("chart_period")
             )
@@ -1243,7 +1257,6 @@ with tab2:
                 "manager_name",
                 "fund_strategy",
                 "target_size_display",
-                "target_size_millions",
                 "currency",
                 "expected_quarter",
                 "expected_year",
